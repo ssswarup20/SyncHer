@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SyncHer – Period Care Tracker</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    /* ===== CSS VARIABLES (Design Tokens) ===== */
+    :root {
+      --blush:       #f9d5e0;
+      --rose:        #e8a0b4;
+      --deep-rose:   #c96b8a;
+      --petal:       #fce8ef;
+      --mauve:       #d4789a;
+      --lavender:    #ede0f5;
+      --sage:        #d6ecd4;
+      --cream:       #fff8f9;
+      --text-dark:   #3b2030;
+      --text-mid:    #7a4a5e;
+      --text-soft:   #b07090;
+      --white:       #ffffff;
+      --shadow-sm:   0 2px 12px rgba(200, 100, 140, 0.10);
+      --shadow-md:   0 6px 28px rgba(200, 100, 140, 0.16);
+      --shadow-lg:   0 16px 48px rgba(200, 100, 140, 0.18);
+      --radius-sm:   12px;
+      --radius-md:   20px;
+      --radius-lg:   32px;
+      --font-display: 'Playfair Display', serif;
+      --font-body:    'DM Sans', sans-serif;
+    }
+
+    /* ===== RESET & BASE ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--petal);
+      color: var(--text-dark);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ===== BACKGROUND DECORATION ===== */
+    body::before {
+      content: '';
+      position: fixed;
+      top: -120px; right: -120px;
+      width: 480px; height: 480px;
+      background: radial-gradient(circle, var(--blush) 0%, transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 0;
+    }
+    body::after {
+      content: '';
+      position: fixed;
+      bottom: -100px; left: -100px;
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, var(--lavender) 0%, transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ===== LAYOUT WRAPPER ===== */
+    .wrapper {
+      position: relative;
+      z-index: 1;
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 32px 20px 60px;
+    }
+
+    /* ===== HEADER ===== */
+    header {
+      text-align: center;
+      margin-bottom: 36px;
+      animation: fadeDown 0.7s ease both;
+    }
+    .logo-icon {
+      font-size: 2.6rem;
+      display: block;
+      margin-bottom: 8px;
+      filter: drop-shadow(0 2px 6px rgba(200,80,120,0.20));
+    }
+    header h1 {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 6vw, 2.8rem);
+      color: var(--deep-rose);
+      letter-spacing: -0.5px;
+    }
+    header h1 span {
+      font-style: italic;
+      color: var(--mauve);
+    }
+    header p {
+      margin-top: 8px;
+      color: var(--text-soft);
+      font-size: 0.95rem;
+      font-weight: 300;
+      letter-spacing: 0.3px;
+    }
+
+    /* ===== TABS ===== */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      background: var(--white);
+      border-radius: var(--radius-lg);
+      padding: 6px;
+      margin-bottom: 28px;
+      box-shadow: var(--shadow-sm);
+      animation: fadeUp 0.6s ease 0.1s both;
+    }
+    .tab-btn {
+      flex: 1;
+      border: none;
+      background: transparent;
+      padding: 12px 16px;
+      border-radius: calc(var(--radius-lg) - 4px);
+      font-family: var(--font-body);
+      font-size: 0.92rem;
+      font-weight: 500;
+      color: var(--text-soft);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .tab-btn.active {
+      background: linear-gradient(135deg, var(--deep-rose), var(--mauve));
+      color: var(--white);
+      box-shadow: 0 4px 16px rgba(200,100,140,0.30);
+    }
+    .tab-btn:not(.active):hover {
+      background: var(--petal);
+      color: var(--deep-rose);
+    }
+
+    /* ===== PANELS ===== */
+    .panel { display: none; animation: fadeUp 0.45s ease both; }
+    .panel.active { display: block; }
+
+    /* ===== CARD ===== */
+    .card {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      padding: 32px 28px;
+      box-shadow: var(--shadow-md);
+      margin-bottom: 20px;
+    }
+    .card-title {
+      font-family: var(--font-display);
+      font-size: 1.3rem;
+      color: var(--deep-rose);
+      margin-bottom: 22px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .card-title span { font-size: 1.4rem; }
+
+    /* ===== FORM FIELDS ===== */
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 520px) { .form-row { grid-template-columns: 1fr; } }
+
+    .field { display: flex; flex-direction: column; gap: 7px; margin-bottom: 18px; }
+    .field label {
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--text-mid);
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+    }
+    .field input[type="date"],
+    .field textarea {
+      border: 2px solid var(--blush);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      font-family: var(--font-body);
+      font-size: 0.95rem;
+      color: var(--text-dark);
+      background: var(--cream);
+      transition: border-color 0.25s, box-shadow 0.25s;
+      outline: none;
+      width: 100%;
+    }
+    .field input[type="date"]:focus,
+    .field textarea:focus {
+      border-color: var(--rose);
+      box-shadow: 0 0 0 4px rgba(232,160,180,0.18);
+    }
+    .field textarea { resize: vertical; min-height: 90px; }
+    .field .error-msg {
+      font-size: 0.78rem;
+      color: #d44;
+      display: none;
+    }
+    .field.invalid .error-msg { display: block; }
+    .field.invalid input,
+    .field.invalid textarea { border-color: #e88; }
+
+    /* ===== MOOD PICKER ===== */
+    .mood-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    @media (max-width: 400px) { .mood-grid { grid-template-columns: repeat(2,1fr); } }
+
+    .mood-option { display: none; }
+    .mood-label {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 14px 8px;
+      border-radius: var(--radius-sm);
+      border: 2px solid var(--blush);
+      background: var(--cream);
+      cursor: pointer;
+      transition: all 0.25s;
+      font-size: 0.80rem;
+      font-weight: 500;
+      color: var(--text-mid);
+    }
+    .mood-label .mood-emoji { font-size: 1.8rem; }
+    .mood-option:checked + .mood-label {
+      border-color: var(--deep-rose);
+      background: var(--petal);
+      color: var(--deep-rose);
+      box-shadow: 0 4px 14px rgba(200,100,140,0.18);
+      transform: translateY(-2px);
+    }
+    .mood-label:hover { border-color: var(--rose); background: var(--petal); }
+
+    /* ===== SAVE BUTTON ===== */
+    .btn-save {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, var(--deep-rose) 0%, var(--mauve) 100%);
+      color: var(--white);
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-body);
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      letter-spacing: 0.3px;
+      box-shadow: 0 6px 20px rgba(200,100,140,0.30);
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-save::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,0);
+      transition: background 0.2s;
+    }
+    .btn-save:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(200,100,140,0.38); }
+    .btn-save:active { transform: translateY(0); }
+
+    /* ===== TOAST ===== */
+    .toast {
+      position: fixed;
+      bottom: 30px; left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--text-dark);
+      color: var(--white);
+      padding: 12px 26px;
+      border-radius: 50px;
+      font-size: 0.88rem;
+      box-shadow: var(--shadow-lg);
+      z-index: 1000;
+      opacity: 0;
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      white-space: nowrap;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ===== PREDICTION BOX ===== */
+    .prediction-box {
+      background: linear-gradient(135deg, var(--lavender), var(--blush));
+      border-radius: var(--radius-md);
+      padding: 22px 24px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: var(--shadow-sm);
+    }
+    .prediction-icon { font-size: 2.2rem; flex-shrink: 0; }
+    .prediction-text h3 {
+      font-family: var(--font-display);
+      font-size: 1rem;
+      color: var(--deep-rose);
+      margin-bottom: 4px;
+    }
+    .prediction-text p { font-size: 0.88rem; color: var(--text-mid); line-height: 1.5; }
+    .prediction-text strong { color: var(--deep-rose); }
+
+    /* ===== MOTIVATIONAL MESSAGE ===== */
+    .motivational-banner {
+      background: linear-gradient(135deg, var(--sage), #e8f5e9);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      margin-bottom: 20px;
+      font-size: 0.9rem;
+      color: #3a6b4a;
+      font-style: italic;
+      text-align: center;
+      display: none;
+      box-shadow: var(--shadow-sm);
+    }
+    .motivational-banner.show { display: block; }
+    .motivational-banner .quote-icon { font-size: 1.1rem; margin-right: 6px; }
+
+    /* ===== RECORDS LIST ===== */
+    .records-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .records-header h2 {
+      font-family: var(--font-display);
+      font-size: 1.35rem;
+      color: var(--deep-rose);
+    }
+    .records-count {
+      background: var(--blush);
+      color: var(--deep-rose);
+      font-size: 0.78rem;
+      font-weight: 500;
+      padding: 4px 12px;
+      border-radius: 50px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 50px 20px;
+      color: var(--text-soft);
+    }
+    .empty-state .empty-icon { font-size: 3rem; margin-bottom: 12px; display: block; }
+    .empty-state p { font-size: 0.95rem; line-height: 1.6; }
+
+    /* ===== RECORD CARD ===== */
+    .record-card {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      padding: 22px 22px 18px;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 14px;
+      border-left: 4px solid var(--rose);
+      transition: box-shadow 0.25s, transform 0.25s;
+      animation: fadeUp 0.4s ease both;
+      position: relative;
+      overflow: hidden;
+    }
+    .record-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+    .record-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: linear-gradient(135deg, rgba(249,213,224,0.10), transparent);
+      pointer-events: none;
+    }
+
+    .record-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .record-dates {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .record-dates .date-badge {
+      background: var(--petal);
+      color: var(--deep-rose);
+      font-size: 0.82rem;
+      font-weight: 500;
+      padding: 4px 12px;
+      border-radius: 50px;
+    }
+    .record-dates .arrow { color: var(--rose); font-size: 0.9rem; }
+    .record-duration {
+      font-size: 0.78rem;
+      color: var(--text-soft);
+      background: var(--blush);
+      padding: 3px 10px;
+      border-radius: 50px;
+    }
+
+    .record-mood {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      color: var(--text-mid);
+      margin-bottom: 8px;
+    }
+    .record-mood .mood-chip {
+      background: var(--lavender);
+      padding: 3px 12px;
+      border-radius: 50px;
+      font-size: 0.82rem;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .record-note {
+      font-size: 0.87rem;
+      color: var(--text-soft);
+      line-height: 1.6;
+      font-style: italic;
+      padding: 10px 12px;
+      background: var(--cream);
+      border-radius: var(--radius-sm);
+      margin-top: 6px;
+    }
+
+    .record-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 12px;
+    }
+    .record-saved-date { font-size: 0.75rem; color: var(--text-soft); }
+
+    .btn-delete {
+      background: none;
+      border: 1.5px solid #f5c0c0;
+      color: #d44;
+      font-size: 0.78rem;
+      padding: 5px 14px;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .btn-delete:hover { background: #ffeaea; border-color: #d44; }
+
+    /* ===== STATS STRIP ===== */
+    .stats-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .stat-pill {
+      background: var(--white);
+      border-radius: var(--radius-sm);
+      padding: 16px 12px;
+      text-align: center;
+      box-shadow: var(--shadow-sm);
+    }
+    .stat-pill .stat-value {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      color: var(--deep-rose);
+      display: block;
+    }
+    .stat-pill .stat-label {
+      font-size: 0.72rem;
+      color: var(--text-soft);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 2px;
+    }
+
+    /* ===== ANIMATIONS ===== */
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ===== FOOTER ===== */
+    footer {
+      text-align: center;
+      margin-top: 40px;
+      font-size: 0.78rem;
+      color: var(--text-soft);
+    }
+    footer span { color: var(--deep-rose); }
+  </style>
+</head>
+<body>
+
+<div class="wrapper">
+
+  <!-- ===== HEADER ===== -->
+  <header>
+    <span class="logo-icon">🌸</span>
+    <h1>Sync<span>Her</span></h1>
+    <p>Your gentle companion for period care & cycle tracking</p>
+  </header>
+
+  <!-- ===== TAB NAVIGATION ===== -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('track')">🌺 Log Cycle</button>
+    <button class="tab-btn" onclick="showTab('records')">📋 My Records</button>
+  </div>
+
+  <!-- ===================== TRACK PANEL ===================== -->
+  <div id="panel-track" class="panel active">
+
+    <!-- Motivational Banner (shown after save) -->
+    <div class="motivational-banner" id="motivationalBanner">
+      <span class="quote-icon">💬</span>
+      <span id="motivationalText"></span>
+    </div>
+
+    <!-- Prediction Box -->
+    <div class="prediction-box" id="predictionBox" style="display:none">
+      <span class="prediction-icon">🔮</span>
+      <div class="prediction-text">
+        <h3>Next Cycle Prediction</h3>
+        <p id="predictionText">Calculating based on your data…</p>
+      </div>
+    </div>
+
+    <!-- Log Form Card -->
+    <div class="card">
+      <div class="card-title"><span>📅</span> Log Your Cycle</div>
+
+      <!-- Date Row -->
+      <div class="form-row">
+        <div class="field" id="field-startDate">
+          <label>Period Start Date</label>
+          <input type="date" id="startDate" max="" />
+          <span class="error-msg">Please pick a start date.</span>
+        </div>
+        <div class="field" id="field-endDate">
+          <label>Period End Date</label>
+          <input type="date" id="endDate" max="" />
+          <span class="error-msg">Please pick a valid end date (≥ start).</span>
+        </div>
+      </div>
+
+      <!-- Mood Picker -->
+      <div class="field" id="field-mood">
+        <label>How are you feeling? 💭</label>
+        <div class="mood-grid">
+          <div>
+            <input type="radio" name="mood" id="mood-happy"    value="happy"    class="mood-option"/>
+            <label for="mood-happy"    class="mood-label"><span class="mood-emoji">😊</span> Happy</label>
+          </div>
+          <div>
+            <input type="radio" name="mood" id="mood-sad"      value="sad"      class="mood-option"/>
+            <label for="mood-sad"      class="mood-label"><span class="mood-emoji">😢</span> Sad</label>
+          </div>
+          <div>
+            <input type="radio" name="mood" id="mood-irritated" value="irritated" class="mood-option"/>
+            <label for="mood-irritated" class="mood-label"><span class="mood-emoji">😤</span> Irritated</label>
+          </div>
+          <div>
+            <input type="radio" name="mood" id="mood-tired"    value="tired"    class="mood-option"/>
+            <label for="mood-tired"    class="mood-label"><span class="mood-emoji">😴</span> Tired</label>
+          </div>
+        </div>
+        <span class="error-msg" style="display:none">Please select your mood.</span>
+      </div>
+
+      <!-- Notes -->
+      <div class="field" id="field-notes">
+        <label>Personal Notes ✍️</label>
+        <textarea id="notes" placeholder="How are you feeling today? Any symptoms, cravings, or thoughts…"></textarea>
+        <span class="error-msg">Please add a short note.</span>
+      </div>
+
+      <!-- Save Button -->
+      <button class="btn-save" onclick="saveEntry()">🌸 Save This Cycle</button>
+    </div>
+
+  </div><!-- end #panel-track -->
+
+  <!-- ===================== RECORDS PANEL ===================== -->
+  <div id="panel-records" class="panel">
+
+    <!-- Stats Strip -->
+    <div class="stats-strip" id="statsStrip" style="display:none">
+      <div class="stat-pill">
+        <span class="stat-value" id="statTotal">0</span>
+        <span class="stat-label">Cycles Logged</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-value" id="statAvgCycle">–</span>
+        <span class="stat-label">Avg Cycle (days)</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-value" id="statAvgDuration">–</span>
+        <span class="stat-label">Avg Duration</span>
+      </div>
+    </div>
+
+    <!-- Records list header -->
+    <div class="records-header">
+      <h2>Your Records</h2>
+      <span class="records-count" id="recordsCount">0 entries</span>
+    </div>
+
+    <!-- Records will be injected here -->
+    <div id="recordsList"></div>
+
+  </div><!-- end #panel-records -->
+
+  <footer>Made with <span>♥</span> for every cycle · SyncHer 2025</footer>
+</div>
+
+<!-- Toast notification -->
+<div class="toast" id="toast"></div>
+
+<!-- ===================== JAVASCRIPT ===================== -->
+<script>
+
+  // ─── MOOD MESSAGES ───────────────────────────────────────────────────────────
+  // Motivational quotes shown after saving based on selected mood
+  const moodMessages = {
+    happy:    "You're radiating sunshine today! ☀️ Celebrate this energy — your body is strong and beautiful.",
+    sad:      "It's perfectly okay to feel low. 🌧️ Be gentle with yourself today. Warmth, rest, and kindness — you deserve all of it.",
+    irritated:"Your feelings are 100% valid. 🌊 Take a deep breath and do something that brings you calm. You've got this!",
+    tired:    "Rest is not laziness — it's self-love. 🍵 Give your body the sleep and nourishment it's asking for."
+  };
+
+  // ─── HELPERS ─────────────────────────────────────────────────────────────────
+
+  // Set today as max date for both date pickers
+  function setDateLimits() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('startDate').max = today;
+    document.getElementById('endDate').max   = today;
+  }
+
+  // Show a toast notification message
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  // Switch between Log & Records tabs
+  function showTab(tab) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('panel-' + tab).classList.add('active');
+    event.target.classList.add('active');
+
+    if (tab === 'records') renderRecords();
+  }
+
+  // Calculate number of days between two date strings
+  function daysBetween(dateStr1, dateStr2) {
+    const d1 = new Date(dateStr1);
+    const d2 = new Date(dateStr2);
+    return Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
+  }
+
+  // Format "2025-06-14" → "14 Jun 2025"
+  function formatDate(dateStr) {
+    const opts = { day: 'numeric', month: 'short', year: 'numeric' };
+    return new Date(dateStr).toLocaleDateString('en-GB', opts);
+  }
+
+  // ─── FORM VALIDATION ─────────────────────────────────────────────────────────
+
+  function validateForm() {
+    let valid = true;
+
+    const startDate = document.getElementById('startDate').value;
+    const endDate   = document.getElementById('endDate').value;
+    const mood      = document.querySelector('input[name="mood"]:checked');
+    const notes     = document.getElementById('notes').value.trim();
+
+    // Check start date
+    const fieldStart = document.getElementById('field-startDate');
+    if (!startDate) { fieldStart.classList.add('invalid'); valid = false; }
+    else            { fieldStart.classList.remove('invalid'); }
+
+    // Check end date (must exist and be >= start)
+    const fieldEnd = document.getElementById('field-endDate');
+    if (!endDate || endDate < startDate) { fieldEnd.classList.add('invalid'); valid = false; }
+    else                                  { fieldEnd.classList.remove('invalid'); }
+
+    // Check mood selected
+    const fieldMood  = document.getElementById('field-mood');
+    const moodError  = fieldMood.querySelector('.error-msg');
+    if (!mood) {
+      moodError.style.display = 'block';
+      valid = false;
+    } else {
+      moodError.style.display = 'none';
+    }
+
+    // Check notes not empty
+    const fieldNotes = document.getElementById('field-notes');
+    if (!notes) { fieldNotes.classList.add('invalid'); valid = false; }
+    else        { fieldNotes.classList.remove('invalid'); }
+
+    return valid;
+  }
+
+  // ─── SAVE ENTRY ──────────────────────────────────────────────────────────────
+
+  function saveEntry() {
+    if (!validateForm()) {
+      showToast('⚠️ Please fill in all fields.');
+      return;
+    }
+
+    const startDate = document.getElementById('startDate').value;
+    const endDate   = document.getElementById('endDate').value;
+    const mood      = document.querySelector('input[name="mood"]:checked').value;
+    const notes     = document.getElementById('notes').value.trim();
+
+    // Build entry object
+    const entry = {
+      id:        Date.now(),           // unique ID using timestamp
+      startDate,
+      endDate,
+      mood,
+      notes,
+      savedAt:   new Date().toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })
+    };
+
+    // Load existing records from LocalStorage (or empty array)
+    const records = getRecords();
+    records.unshift(entry); // add new entry at the beginning
+    localStorage.setItem('syncherRecords', JSON.stringify(records));
+
+    // Show motivational message
+    showMotivationalMessage(mood);
+
+    // Show next cycle prediction
+    showPrediction(records);
+
+    // Reset form
+    document.getElementById('startDate').value = '';
+    document.getElementById('endDate').value   = '';
+    document.getElementById('notes').value     = '';
+    document.querySelectorAll('input[name="mood"]').forEach(r => r.checked = false);
+
+    showToast('🌸 Entry saved successfully!');
+  }
+
+  // ─── LOCALSTORE HELPERS ──────────────────────────────────────────────────────
+
+  // Get all saved records (parse JSON safely)
+  function getRecords() {
+    try {
+      return JSON.parse(localStorage.getItem('syncherRecords')) || [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // Delete a record by its ID
+  function deleteRecord(id) {
+    if (!confirm('Delete this record? This cannot be undone.')) return;
+    const records = getRecords().filter(r => r.id !== id);
+    localStorage.setItem('syncherRecords', JSON.stringify(records));
+    renderRecords();
+    showPrediction(records);
+    showToast('🗑️ Record deleted.');
+  }
+
+  // ─── MOTIVATIONAL BANNER ─────────────────────────────────────────────────────
+
+  function showMotivationalMessage(mood) {
+    const banner = document.getElementById('motivationalBanner');
+    const text   = document.getElementById('motivationalText');
+    text.textContent = moodMessages[mood] || "You're doing amazing! 🌸";
+    banner.classList.add('show');
+    // Auto-hide after 8 seconds
+    setTimeout(() => banner.classList.remove('show'), 8000);
+  }
+
+  // ─── CYCLE PREDICTION ────────────────────────────────────────────────────────
+
+  function showPrediction(records) {
+    const box = document.getElementById('predictionBox');
+    const txt = document.getElementById('predictionText');
+
+    // Need at least 2 entries to predict
+    if (records.length < 2) { box.style.display = 'none'; return; }
+
+    // Calculate average gap between cycle start dates
+    let gaps = [];
+    for (let i = 0; i < records.length - 1; i++) {
+      const gap = daysBetween(records[i + 1].startDate, records[i].startDate);
+      if (gap > 0) gaps.push(gap);
+    }
+    if (gaps.length === 0) { box.style.display = 'none'; return; }
+
+    const avgCycle = Math.round(gaps.reduce((a,b) => a+b, 0) / gaps.length);
+
+    // Predict next start from most recent entry
+    const lastStart  = new Date(records[0].startDate);
+    const nextStart  = new Date(lastStart);
+    nextStart.setDate(nextStart.getDate() + avgCycle);
+
+    const nextStr  = nextStart.toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
+    const daysLeft = daysBetween(new Date().toISOString().split('T')[0], nextStart.toISOString().split('T')[0]);
+    const daysMsg  = daysLeft > 0 ? `(about <strong>${daysLeft} days</strong> from today)` : `(your next cycle may have already started!)`;
+
+    txt.innerHTML = `Based on your last <strong>${gaps.length + 1}</strong> cycles, your average cycle length is <strong>${avgCycle} days</strong>. Your next period is expected around <strong>${nextStr}</strong> ${daysMsg}.`;
+    box.style.display = 'flex';
+  }
+
+  // ─── RENDER RECORDS ──────────────────────────────────────────────────────────
+
+  function renderRecords() {
+    const records = getRecords();
+    const list    = document.getElementById('recordsList');
+    const count   = document.getElementById('recordsCount');
+    const strip   = document.getElementById('statsStrip');
+
+    count.textContent = `${records.length} entr${records.length === 1 ? 'y' : 'ies'}`;
+
+    // Empty state
+    if (records.length === 0) {
+      strip.style.display = 'none';
+      list.innerHTML = `
+        <div class="empty-state">
+          <span class="empty-icon">🌸</span>
+          <p>No cycles logged yet.<br>Head to <strong>Log Cycle</strong> to add your first entry!</p>
+        </div>`;
+      return;
+    }
+
+    // ── Stats ──
+    strip.style.display = 'grid';
+    document.getElementById('statTotal').textContent = records.length;
+
+    // Average cycle length
+    if (records.length >= 2) {
+      let gaps = [];
+      for (let i = 0; i < records.length - 1; i++) {
+        const g = daysBetween(records[i+1].startDate, records[i].startDate);
+        if (g > 0) gaps.push(g);
+      }
+      const avg = gaps.length ? Math.round(gaps.reduce((a,b)=>a+b,0)/gaps.length) : '–';
+      document.getElementById('statAvgCycle').textContent = avg;
+    } else {
+      document.getElementById('statAvgCycle').textContent = '–';
+    }
+
+    // Average duration
+    const durations = records.map(r => daysBetween(r.startDate, r.endDate)).filter(d => d >= 0);
+    const avgDur    = durations.length ? Math.round(durations.reduce((a,b)=>a+b,0)/durations.length) : '–';
+    document.getElementById('statAvgDuration').textContent = avgDur + (avgDur !== '–' ? 'd' : '');
+
+    // Mood emoji map
+    const moodEmoji = { happy:'😊', sad:'😢', irritated:'😤', tired:'😴' };
+
+    // ── Build cards ──
+    list.innerHTML = records.map(r => {
+      const duration = daysBetween(r.startDate, r.endDate);
+      return `
+      <div class="record-card" id="card-${r.id}">
+        <div class="record-top">
+          <div class="record-dates">
+            <span class="date-badge">🩸 ${formatDate(r.startDate)}</span>
+            <span class="arrow">→</span>
+            <span class="date-badge">${formatDate(r.endDate)}</span>
+            <span class="record-duration">${duration} day${duration !== 1 ? 's' : ''}</span>
+          </div>
+        </div>
+        <div class="record-mood">
+          Mood:
+          <span class="mood-chip">${moodEmoji[r.mood] || '🙂'} ${r.mood.charAt(0).toUpperCase() + r.mood.slice(1)}</span>
+        </div>
+        ${r.notes ? `<div class="record-note">📝 ${r.notes}</div>` : ''}
+        <div class="record-footer">
+          <span class="record-saved-date">Saved on ${r.savedAt}</span>
+          <button class="btn-delete" onclick="deleteRecord(${r.id})">🗑️ Delete</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // ─── INIT ────────────────────────────────────────────────────────────────────
+
+  // Run on page load
+  setDateLimits();
+
+  // Show prediction if there are already saved records
+  const existingRecords = getRecords();
+  if (existingRecords.length >= 2) showPrediction(existingRecords);
+
+</script>
+</body>
+</html>
